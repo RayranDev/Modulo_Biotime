@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIRH Plastitec — Módulo de Tiempos y Asistencia</title>
+  <meta name="description" content="Sistema de Liquidación de Tiempos, Aprobación Continua por Supervisores y Exportación a Sinergy Nómina para Plastitec SAS.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <!-- App Container -->
+  <div class="app-layout">
+    
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="brand-logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title">PLASTITEC S.A.S.</div>
+          <div class="brand-subtitle">SIRH · Módulo de Tiempos y Asistencia</div>
+        </div>
+      </div>
+
+      <!-- Center Status / Period Badge -->
+      <div class="nav-center">
+        <div class="connection-pill">
+          <span class="pulse-dot"></span>
+          <span class="connection-label">BioTime 8.5 Passthrough</span>
+        </div>
+        <div class="active-period-pill" id="navPeriodPill">
+          <span class="period-name" id="navPeriodName">Período: Cargando...</span>
+          <span class="period-status-badge badge-success" id="navPeriodBadge">ABIERTO</span>
+        </div>
+      </div>
+
+      <!-- Right Actions: User Context & Quick Tools -->
+      <div class="nav-actions">
+        <!-- Quick Calculation Trigger -->
+        <button class="btn btn-secondary btn-sm" id="btnOpenCalculoModal" title="Ejecutar motor de cálculo de 6 etapas">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 14 14"></polyline>
+          </svg>
+          <span>Calcular Tiempos</span>
+        </button>
+
+        <!-- Quick Sync BioTime -->
+        <button class="btn btn-secondary btn-sm" id="btnSyncBioTime" title="Sincronizar marcaciones crudas desde BioTime 8.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span id="syncBtnText">Sincronizar BioTime</span>
+        </button>
+
+        <!-- Role / Operator Switcher -->
+        <div class="user-context">
+          <label for="selectUserContext" class="visually-hidden">Rol de Usuario</label>
+          <select id="selectUserContext" class="select-context">
+            <option value="SUPERVISOR:SUP_PLANTA_01:Carlos Ruiz">👤 Carlos Ruiz (Sup. Planta 1)</option>
+            <option value="SUPERVISOR:SUP_INYECCION:Marta Gómez">👤 Marta Gómez (Sup. Inyección)</option>
+            <option value="RRHH:RRHH_ADMIN:Nómina & Talento Humano">🛡️ RRHH / Admin Nómina</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="main-content">
+
+      <!-- Executive KPI Cards -->
+      <section class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Período de Nómina</span>
+            <span class="kpi-icon icon-cyan">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </span>
+          </div>
+          <div class="kpi-value" id="kpiPeriodoCodigo">--</div>
+          <div class="kpi-subtext" id="kpiPeriodoRango">Ciclo 11 al 10</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Pendientes de Aprobación</span>
+            <span class="kpi-icon icon-amber">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </span>
+          </div>
+          <div class="kpi-value highlight-amber" id="kpiPendientes">0</div>
+          <div class="kpi-subtext">Conceptos diarios por validar</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Jornadas Aprobadas</span>
+            <span class="kpi-icon icon-emerald">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </span>
+          </div>
+          <div class="kpi-value highlight-emerald" id="kpiAprobadas">0</div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" id="kpiProgressBar" style="width: 0%"></div>
+          </div>
+          <div class="kpi-subtext" id="kpiProgresoText">0% completado</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Excepciones / Horas Extras</span>
+            <span class="kpi-icon icon-purple">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </span>
+          </div>
+          <div class="kpi-value highlight-purple" id="kpiExcepciones">0</div>
+          <div class="kpi-subtext">HED, HEN, HDF, HENF & Redondeos P4</div>
+        </div>
+      </section>
+
+      <!-- Navigation Tabs -->
+      <nav class="tab-navigation">
+        <button class="tab-btn active" data-tab="tab-supervisor">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7.5" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+          Bandeja del Supervisor
+        </button>
+        <button class="tab-btn" data-tab="tab-rrhh">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+          Cierre de Nómina (11→10) & Sinergy
+        </button>
+        <button class="tab-btn" data-tab="tab-comparador">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          Conciliador Paralelo (BioTime vs SIRH)
+        </button>
+        <button class="tab-btn" data-tab="tab-auditoria">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          Pista de Auditoría SHA-256
+        </button>
+      </nav>
+
+      <!-- TAB 1: BANDEJA DEL SUPERVISOR -->
+      <section id="tab-supervisor" class="tab-panel active">
+        <!-- Control Bar: Filters & Actions -->
+        <div class="panel-header">
+          <div class="filter-group">
+            <div class="search-input-wrapper">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="inputSearchEmpleado" class="input-search" placeholder="Buscar colaborador o cédula...">
+            </div>
+
+            <div class="filter-select-wrapper">
+              <select id="selectFiltroEstado" class="select-filter">
+                <option value="PENDIENTE">Estado: Solo Pendientes</option>
+                <option value="APROBADO">Estado: Aprobados</option>
+                <option value="AJUSTADO">Estado: Ajustados</option>
+                <option value="TODOS">Estado: Todos los registros</option>
+              </select>
+            </div>
+
+            <label class="checkbox-label" title="Filtra únicamente novedades que requieren atención (Horas extras, recargos)">
+              <input type="checkbox" id="chkSoloExcepciones">
+              <span>Solo Excepciones / H. Extras</span>
+            </label>
+          </div>
+
+          <div class="action-group">
+            <button class="btn btn-primary" id="btnAprobarSeleccionados" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Aprobar Seleccionados (<span id="countSeleccionados">0</span>)</span>
+            </button>
+            <button class="btn btn-outline" id="btnAprobarTodoSinExcepcion">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              <span>Aprobar Todo sin Novedad</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="data-table" id="tablaBandeja">
+              <thead>
+                <tr>
+                  <th style="width: 40px;">
+                    <input type="checkbox" id="chkSelectAll" title="Seleccionar todos">
+                  </th>
+                  <th>Cód. SIRH</th>
+                  <th>Colaborador</th>
+                  <th>Departamento</th>
+                  <th>Fecha Imputación</th>
+                  <th>Concepto Liquidado</th>
+                  <th style="text-align: right;">Horas</th>
+                  <th style="text-align: center;">Estado</th>
+                  <th style="text-align: center; width: 140px;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyBandeja">
+                <tr>
+                  <td colspan="9" class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Consultando conceptos de liquidación en el motor...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <span id="footerInfoText">Mostrando registros...</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: CIERRE DE NÓMINA (11->10) & EXPORTADOR SINERGY -->
+      <section id="tab-rrhh" class="tab-panel">
+        <div class="period-management-grid">
+          
+          <!-- Period Status & Timeline Card -->
+          <div class="card card-timeline">
+            <div class="card-header">
+              <h3>Ciclo Operativo Mensual (11 al 10)</h3>
+              <span class="badge badge-info">Regla de Negocio P3</span>
+            </div>
+            <div class="card-body">
+              <div class="timeline-stepper">
+                <div class="step-item completed">
+                  <div class="step-circle">1</div>
+                  <div class="step-content">
+                    <div class="step-title">Días 11 al 10</div>
+                    <div class="step-desc">Aprobación diaria continua por Jefes Inmediatos</div>
+                  </div>
+                </div>
+                <div class="step-item active" id="stepBloqueo">
+                  <div class="step-circle">2</div>
+                  <div class="step-content">
+                    <div class="step-title">Día 11 (Bloqueo Supervisores)</div>
+                    <div class="step-desc">RRHH asume el control exclusivo para cierre de nómina</div>
+                  </div>
+                </div>
+                <div class="step-item" id="stepExportacion">
+                  <div class="step-circle">3</div>
+                  <div class="step-content">
+                    <div class="step-title">Día 12 (Exportación Sinergy)</div>
+                    <div class="step-desc">Generación del plano oficial FINAL_SINER_*.txt con hash SHA-256</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Period Current State Notice -->
+              <div class="alert-box" id="periodAlertBox">
+                <div class="alert-icon">ℹ️</div>
+                <div class="alert-content">
+                  <strong id="alertPeriodTitle">Período de Septiembre 2026 Abierto</strong>
+                  <p id="alertPeriodDesc">Los supervisores pueden aprobar y registrar justificaciones.</p>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="period-actions">
+                <button class="btn btn-warning" id="btnBloquearRRHH">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  <span>Bloquear Supervisores (Día 11)</span>
+                </button>
+                <button class="btn btn-success" id="btnExportarSinergy">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  <span>Cerrar & Exportar Plano Sinergy</span>
+                </button>
+                <button class="btn btn-danger-outline" id="btnReabrirPeriodo">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 2v6h6M21.5 22v-6h-6"/><path d="M22 11.5A10 10 0 0 0 3.2 7.2M2 12.5a10 10 0 0 0 18.8 4.3"/></svg>
+                  <span>Reabrir Período (Excepción)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sinergy Export File Preview & Integrity Card -->
+          <div class="card card-export-preview">
+            <div class="card-header">
+              <h3>Archivo Plano Sinergy Nómina</h3>
+              <div class="header-badges">
+                <span class="badge badge-success" id="badgeFormatoSinergy">12 Columnas TAB</span>
+                <span class="badge badge-purple" id="badgeVersionCodigos">Códigos Ley 2101 / 2466</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="export-meta-box" id="exportMetaBox" style="display: none;">
+                <div class="meta-row">
+                  <span class="meta-label">Archivo Generado:</span>
+                  <span class="meta-val font-mono" id="lblArchivoNombre">FINAL_SINER_202609.txt</span>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Total Registros:</span>
+                  <span class="meta-val" id="lblTotalLineas">0 líneas</span>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Total Horas Liquidadas:</span>
+                  <span class="meta-val" id="lblTotalHoras">0.00 hrs</span>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Firma Criptográfica SHA-256:</span>
+                  <span class="meta-val font-mono hash-tag" id="lblHashSha256" title="Click para copiar">--</span>
+                </div>
+                <div class="meta-actions">
+                  <a href="#" class="btn btn-primary btn-sm" id="btnDescargarPlano" target="_blank">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Descargar Archivo Plano .txt
+                  </a>
+                </div>
+              </div>
+
+              <!-- Preview Code Container -->
+              <div class="preview-container">
+                <div class="preview-header">Vista previa de las primeras líneas del plano</div>
+                <pre class="code-preview" id="preSinergyContent">Aún no se ha generado exportación para este período.
+Haga clic en "Cerrar & Exportar Plano Sinergy" cuando todas las jornadas estén aprobadas.</pre>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 3: CONCILIADOR PARALELO -->
+      <section id="tab-comparador" class="tab-panel">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3>Conciliador en Paralelo: BioTime 8.5 vs Motor SIRH</h3>
+              <p class="card-desc">Valida que las reglas de Plastitec (42h Ley 2101 y redondeos :25/:50) expliquen el 100% de las variaciones respecto a los reportes crudos de BioTime.</p>
+            </div>
+            <div class="parallel-form">
+              <div class="input-group-inline">
+                <label for="compFechaDesde">Desde:</label>
+                <input type="date" id="compFechaDesde" class="input-date" value="2026-08-20">
+              </div>
+              <div class="input-group-inline">
+                <label for="compFechaHasta">Hasta:</label>
+                <input type="date" id="compFechaHasta" class="input-date" value="2026-09-10">
+              </div>
+              <div class="input-group-inline">
+                <label for="compEmpCode">Colaborador:</label>
+                <input type="text" id="compEmpCode" class="input-text" placeholder="Cédula (Opcional)">
+              </div>
+              <button class="btn btn-primary" id="btnEjecutarConciliacion">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                <span>Conciliar en Paralelo</span>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            
+            <!-- Result Diagnostic Metric Chips -->
+            <div class="diagnostic-grid" id="diagGrid">
+              <div class="diag-chip">
+                <div class="diag-count" id="diagTotalEvaluadas">0</div>
+                <div class="diag-title">Jornadas Evaluadas</div>
+              </div>
+              <div class="diag-chip border-emerald">
+                <div class="diag-count highlight-emerald" id="diagCoincidencias">0</div>
+                <div class="diag-title">Coincidencias Exactas (100%)</div>
+              </div>
+              <div class="diag-chip border-cyan">
+                <div class="diag-count highlight-cyan" id="diagP1P4">0</div>
+                <div class="diag-title">Desvíos Explicables (42h / :25-:50)</div>
+              </div>
+              <div class="diag-chip border-amber">
+                <div class="diag-count highlight-amber" id="diagAnomalias">0</div>
+                <div class="diag-title">Anomalías por Investigar</div>
+              </div>
+            </div>
+
+            <!-- Detailed Differences Table -->
+            <div class="table-responsive" style="margin-top: 1.5rem;">
+              <table class="data-table" id="tablaConciliacion">
+                <thead>
+                  <tr>
+                    <th>Cód. Empleado</th>
+                    <th>Fecha</th>
+                    <th>Horas BioTime (Reporte)</th>
+                    <th>Horas SIRH Plastitec</th>
+                    <th>Diferencia</th>
+                    <th>Diagnóstico Explicativo</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyConciliacion">
+                  <tr>
+                    <td colspan="6" class="text-center text-muted" style="padding: 2rem;">
+                      Seleccione el rango de fechas y presione "Conciliar en Paralelo" para ver el análisis de desviaciones.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: PISTA DE AUDITORÍA SHA-256 -->
+      <section id="tab-auditoria" class="tab-panel">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3>Pista de Auditoría Inmutable (No Repudio)</h3>
+              <p class="card-desc">Cada aprobación, ajuste de horas, apertura de período o exportación queda sellada con hash SHA-256 inmutable.</p>
+            </div>
+            <button class="btn btn-outline btn-sm" id="btnRefreshAuditoria">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Actualizar Bitácora
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 70px;">ID Evento</th>
+                    <th>Fecha y Hora (UTC)</th>
+                    <th>Usuario & Rol</th>
+                    <th>Acción</th>
+                    <th>Entidad Afectada</th>
+                    <th>Justificación Legal</th>
+                    <th>Firma SHA-256</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyAuditoria">
+                  <tr>
+                    <td colspan="7" class="loading-state">
+                      <div class="spinner"></div>
+                      <p>Cargando bitácora inmutable...</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL: AJUSTE DE HORAS MANUAL CON JUSTIFICACIÓN OBLIGATORIA -->
+  <div class="modal-overlay" id="modalAjuste" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title">Ajuste Manual de Horas (Control Legal)</div>
+        <button class="modal-close" id="btnCloseModalAjuste">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-subtitle">Todo cambio a las horas calculadas por el motor exige tipificación y queda registrado en la pista de auditoría.</p>
+        
+        <input type="hidden" id="modalResultadoId">
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Colaborador:</label>
+            <input type="text" id="modalEmpNombre" class="input-readonly" readonly>
+          </div>
+          <div class="form-group">
+            <label>Fecha de Imputación:</label>
+            <input type="text" id="modalFecha" class="input-readonly" readonly>
+          </div>
+          <div class="form-group">
+            <label>Concepto:</label>
+            <input type="text" id="modalConcepto" class="input-readonly" readonly>
+          </div>
+          <div class="form-group">
+            <label>Horas Calculadas Originales:</label>
+            <input type="text" id="modalHorasOriginales" class="input-readonly" readonly>
+          </div>
+          <div class="form-group span-2">
+            <label for="modalNuevasHoras">Nuevas Horas a Liquidar (*):</label>
+            <input type="number" id="modalNuevasHoras" class="input-text" step="0.5" min="0" max="24" required placeholder="Ej: 2.5">
+          </div>
+          <div class="form-group span-2">
+            <label for="modalJustificacion">Motivo de Justificación Obligatorio (*):</label>
+            <textarea id="modalJustificacion" class="textarea" rows="3" required placeholder="Especifique el motivo técnico u operativo (ej: 'Entrega extraordinaria de turno por mantenimiento en línea de inyección 3')"></textarea>
+            <span class="help-text">Mínimo 10 caracteres requeridos para validez de auditoría.</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelarAjuste">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmarAjuste">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          Firmar y Registrar Ajuste
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EJECUTAR MOTOR DE CÁLCULO -->
+  <div class="modal-overlay" id="modalCalculo" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title">Ejecutar Motor de Cálculo de Asistencia</div>
+        <button class="modal-close" id="btnCloseModalCalculo">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-subtitle">Aplica el pipeline de 6 etapas: cruce con programación, segmentación atómica, umbral 42h (Ley 2101) y redondeos :25/:50 (P4).</p>
+        
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="calcFechaInicio">Fecha Inicio (*):</label>
+            <input type="date" id="calcFechaInicio" class="input-date" value="2026-08-20">
+          </div>
+          <div class="form-group">
+            <label for="calcFechaFin">Fecha Fin (*):</label>
+            <input type="date" id="calcFechaFin" class="input-date" value="2026-09-10">
+          </div>
+        </div>
+
+        <div class="calc-feedback-box" id="calcFeedbackBox" style="display: none; margin-top: 1rem;">
+          <div class="spinner"></div>
+          <span id="calcFeedbackText">Procesando jornadas...</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelarCalculo">Cerrar</button>
+        <button class="btn btn-primary" id="btnEjecutarCalculoMotor">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          Iniciar Cálculo Masivo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Application Logic -->
+  <script src="/js/app.js"></script>
+</body>
+</html>

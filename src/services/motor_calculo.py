@@ -388,3 +388,127 @@ class MotorCalculoService:
             calculo_id=calculo_id,
         )
         resultados.append(res)
+
+    @classmethod
+    def procesar_rango_fechas(
+        cls,
+        db: Session,
+        fecha_inicio: date,
+        fecha_fin: date,
+        empleado_ids: Optional[List[int]] = None,
+        usuario_id: str = "USUARIO_WEB",
+    ) -> Dict[str, Any]:
+        """
+        Ejecuta el pipeline de cálculo completo (Etapas 3, 4, 5 y 6) para un rango de fechas.
+        Procesa semanas de lunes a domingo para aplicar el umbral de 42h (P1).
+        """
+        import uuid
+        calc_id = f"CALC-{uuid.uuid4().hex[:8]}"
+
+        # Obtener empleados objetivo
+        q_emps = db.query(Empleado).filter(Empleado.activo == True)
+        if empleado_ids:
+            q_emps = q_emps.filter(Empleado.id.in_(empleado_ids))
+        empleados = q_emps.all()
+
+        # Turno por defecto en caso de no tener asignación explícita
+        turno_default = db.query(Turno).filter(Turno.activo == True).first()
+
+        # Encontrar todas las semanas que cubren el rango
+        lunes_inicio = fecha_inicio - timedelta(days=fecha_inicio.weekday())
+        domingo_fin = fecha_fin + timedelta(days=(6 - fecha_fin.weekday()))
+
+        total_jornadas_creadas = 0
+        total_resultados_generados = 0
+        total_horas_calculadas = 0.0
+
+        for emp in empleados:
+            cur_semana_lunes = lunes_inicio
+            while cur_semana_lunes <= domingo_fin:
+                jornadas_semana: List[JornadaResuelta] = []
+                for offset in range(7):
+                    f_dia = cur_semana_lunes + timedelta(days=offset)
+                    if f_dia < fecha_inicio or f_dia > fecha_fin:
+                        continue
+
+                    # Verificar si ya existe jornada resuelta
+                    jornada = db.query(JornadaResuelta).filter(
+                        JornadaResuelta.empleado_id == emp.id,
+                        JornadaResuelta.fecha_imputacion == f_dia,
+                    ).first()
+
+                    if not jornada:
+                        jornada = cls.resolver_jornada_empleado_dia(
+                            db=db,
+                            empleado_id=emp.id,
+                            fecha_imputacion=f_dia,
+                            calculo_id=calc_id,
+                        )
+                        if jornada:
+                            total_jornadas_creadas += 1
+                            # Si no tenía turno pero tiene marcaciones, asignamos turno default para consistencia
+                            if not jornada.turno_id and turno_default and jornada.inicio_real:
+                                jornada.turno_id = turno_default.id
+                                jornada.inicio_programado = datetime.combine(f_dia, turno_default.hora_inicio)
+                                jornada.fin_programado = jornada.inicio_programado + timedelta(minutes=turno_default.duracion_minutos)
+                                db.flush()
+
+                            # Segmentar
+                            h_nocturna = cls.obtener_hora_nocturna_inicio(db, f_dia)
+                            cls.segmentar_jornada(db, jornada, hora_ini_nocturna=h_nocturna)
+
+                    if jornada and jornada.minutos_trabajados_netos > 0:
+                        jornadas_semana.append(jornada)
+
+                # Clasificar semana (42h Ley 2101) si hay jornadas netas
+                if jornadas_semana:
+                    # Evitar duplicar resultados si ya existen para estos días
+                    fechas_semana = [j.fecha_imputacion for j in jornadas_semana]
+                    db.query(ResultadoDiario).filter(
+                        ResultadoDiario.empleado_id == emp.id,
+                        ResultadoDiario.fecha_imputacion.in_(fechas_semana),
+                        ResultadoDiario.estado_aprobacion == "PENDIENTE",
+                    ).delete(synchronize_session=False)
+
+                    res = cls.clasificar_semana_42h_rotativo(
+                        db=db,
+                        empleado_id=emp.id,
+                        jornadas_semana=jornadas_semana,
+                        calculo_id=calc_id,
+                    )
+                    total_resultados_generados += len(res)
+                    total_horas_calculadas += sum(float(r.cantidad_horas) for r in res)
+
+                cur_semana_lunes += timedelta(days=7)
+
+        # Auditoría del cálculo
+        AuditService.registrar_evento(
+            db=db,
+            usuario_id=usuario_id,
+            usuario_nombre="Operador Web",
+            rol="SISTEMA",
+            ip_origen="127.0.0.1",
+            accion="CALCULO_MASIVO_RANGO",
+            entidad="MOTOR_CALCULO",
+            entidad_id=calc_id,
+            motivo_justificacion=f"Cálculo masivo ejecutado desde la interfaz web para el período {fecha_inicio} a {fecha_fin}",
+            valor_anterior=None,
+            valor_nuevo={
+                "fecha_inicio": fecha_inicio.isoformat(),
+                "fecha_fin": fecha_fin.isoformat(),
+                "empleados_evaluados": len(empleados),
+                "jornadas_procesadas": total_jornadas_creadas,
+                "resultados_generados": total_resultados_generados,
+                "total_horas": total_horas_calculadas,
+            },
+        )
+
+        return {
+            "calculo_id": calc_id,
+            "empleados_procesados": len(empleados),
+            "jornadas_procesadas": total_jornadas_creadas,
+            "conceptos_generados": total_resultados_generados,
+            "total_horas": round(total_horas_calculadas, 2),
+            "fecha_inicio": fecha_inicio.isoformat(),
+            "fecha_fin": fecha_fin.isoformat(),
+        }

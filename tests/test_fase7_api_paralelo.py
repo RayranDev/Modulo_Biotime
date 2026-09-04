@@ -5,15 +5,18 @@ import pytest
 from datetime import date
 from fastapi.testclient import TestClient
 from src.main import app
-from src.core.database import SessionLocal, Base, engine
+from src.core.database import SessionLocal, Base, engine, get_db
 from src.services.comparador_service import ComparadorParaleloService
 from src.domain.models.identidad import Cargo, Empleado, MapeoIdentidad
 from src.domain.models.calculo import JornadaResuelta
 
+@pytest.fixture
+def client(db):
+    app.dependency_overrides[get_db] = lambda: db
+    yield TestClient(app)
+    app.dependency_overrides.clear()
 
-@pytest.fixture(scope="module")
-def client():
-    return TestClient(app)
+
 
 
 def test_api_health(client):

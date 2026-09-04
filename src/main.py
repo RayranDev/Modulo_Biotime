@@ -3,7 +3,7 @@ SIRH Plastitec — Módulo de Tiempos y Asistencia
 Punto de entrada FastAPI para la API de Gestión, Ingesta, Aprobación y Exportación.
 """
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import List, Optional, Dict, Any
 from fastapi import FastAPI, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -69,6 +69,13 @@ class ReabrirPeriodoRequest(BaseModel):
     rol: str = "ADMIN"
 
 
+class CalculoRangoRequest(BaseModel):
+    fecha_inicio: date = Field(..., description="Fecha inicio YYYY-MM-DD")
+    fecha_fin: date = Field(..., description="Fecha fin YYYY-MM-DD")
+    empleado_ids: Optional[List[int]] = None
+    usuario_id: str = "USUARIO_WEB"
+
+
 # --- Endpoints ---
 
 @app.get("/api/v1/health", tags=["Salud"])
@@ -77,7 +84,7 @@ def health_check():
         "status": "ok",
         "app": "SIRH Plastitec Módulo de Tiempos",
         "env": settings.ENVIRONMENT,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -108,11 +115,87 @@ def sincronizar_asistencia(req: IngestaSyncRequest, db: Session = Depends(get_db
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/v1/dashboard/resumen", tags=["Dashboard"])
+def obtener_resumen_dashboard(db: Session = Depends(get_db)):
+    """Retorna los KPIs principales para los paneles ejecutivos de Plastitec."""
+    from src.domain.models import MarcacionNormalizada
+    emp_count = db.query(Empleado).filter(Empleado.activo == True).count()
+    marcaciones_count = db.query(MarcacionNormalizada).count()
+    p = PeriodoService.obtener_o_crear_periodo(db, 2026, 9)
+    pendientes = PeriodoService.validar_pendientes(db, p.id)
+    aprobados = (
+        db.query(ResultadoDiario)
+        .filter(
+            ResultadoDiario.fecha_imputacion >= p.fecha_inicio,
+            ResultadoDiario.fecha_imputacion <= p.fecha_fin,
+            ResultadoDiario.estado_aprobacion.in_(["APROBADO", "AJUSTADO"]),
+        )
+        .count()
+    )
+    excepciones = (
+        db.query(ResultadoDiario)
+        .filter(
+            ResultadoDiario.fecha_imputacion >= p.fecha_inicio,
+            ResultadoDiario.fecha_imputacion <= p.fecha_fin,
+            ResultadoDiario.concepto_dominio.in_(["0200", "0210", "0250", "0260"]),
+        )
+        .count()
+    )
+    auditoria_count = db.query(AuditoriaEvento).count()
+    return {
+        "empleados_activos": emp_count,
+        "marcaciones_biometricas": marcaciones_count,
+        "periodo_id": p.id,
+        "periodo_codigo": p.codigo,
+        "periodo_inicio": p.fecha_inicio.isoformat(),
+        "periodo_fin": p.fecha_fin.isoformat(),
+        "periodo_estado": p.estado,
+        "pendientes_aprobacion": pendientes,
+        "jornadas_aprobadas": aprobados,
+        "total_conceptos_periodo": pendientes + aprobados,
+        "excepciones_horas_extras": excepciones,
+        "eventos_auditoria": auditoria_count,
+    }
+
+
+@app.get("/api/v1/empleados", tags=["Catálogo"])
+def listar_empleados(db: Session = Depends(get_db)):
+    """Lista empleados activos para filtros y selectores en la interfaz web."""
+    emps = db.query(Empleado).filter(Empleado.activo == True).order_by(Empleado.apellidos).all()
+    return [
+        {
+            "id": e.id,
+            "emp_code": e.sirh_emp_id,
+            "nombre_completo": f"{e.apellidos}, {e.nombres}",
+            "cargo": e.cargo.nombre if e.cargo else "Operario",
+            "departamento": e.departamento.nombre if e.departamento else "Planta",
+        }
+        for e in emps
+    ]
+
+
+@app.post("/api/v1/calculo/procesar-rango", tags=["Motor de Cálculo"])
+def procesar_rango_calculo(req: CalculoRangoRequest, db: Session = Depends(get_db)):
+    """Ejecuta el cálculo masivo de 6 etapas y 42h para el rango de fechas."""
+    try:
+        resultado = MotorCalculoService.procesar_rango_fechas(
+            db=db,
+            fecha_inicio=req.fecha_inicio,
+            fecha_fin=req.fecha_fin,
+            empleado_ids=req.empleado_ids,
+            usuario_id=req.usuario_id,
+        )
+        return resultado
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/v1/aprobacion/bandeja", tags=["Aprobación Continua"])
 def obtener_bandeja_supervisor(
-    supervisor_id: str = Query(..., description="ID del supervisor"),
+    supervisor_id: str = Query("SUPERVISOR_TODOS", description="ID del supervisor"),
     rol: str = Query("SUPERVISOR"),
     solo_excepciones: bool = Query(False),
+    estado: Optional[str] = Query("PENDIENTE", description="Filtro de estado: PENDIENTE, APROBADO, TODOS"),
     db: Session = Depends(get_db),
 ):
     """Consulta la bandeja diaria de conceptos a aprobar según el alcance del supervisor."""
@@ -121,7 +204,9 @@ def obtener_bandeja_supervisor(
         supervisor_id=supervisor_id,
         rol=rol,
         solo_excepciones=solo_excepciones,
+        estado=estado,
     )
+
 
 
 @app.post("/api/v1/aprobacion/aprobar-bloque", tags=["Aprobación Continua"])
@@ -261,3 +346,82 @@ def conciliar_paralelo(
         fecha_fin=hasta,
         emp_code=emp_code,
     )
+
+
+@app.get("/api/v1/periodos/actual", tags=["Períodos y Nómina"])
+def obtener_periodo_actual(db: Session = Depends(get_db)):
+    """Obtiene el período activo del ciclo actual y sus métricas en vivo."""
+    # Período de septiembre 2026 (11 de agosto a 10 de septiembre)
+    p = PeriodoService.obtener_o_crear_periodo(db, 2026, 9)
+    pendientes = PeriodoService.validar_pendientes(db, p.id)
+    aprobados = (
+        db.query(ResultadoDiario)
+        .filter(
+            ResultadoDiario.fecha_imputacion >= p.fecha_inicio,
+            ResultadoDiario.fecha_imputacion <= p.fecha_fin,
+            ResultadoDiario.estado_aprobacion.in_(["APROBADO", "AJUSTADO"]),
+        )
+        .count()
+    )
+    return {
+        "id": p.id,
+        "codigo": p.codigo,
+        "fecha_inicio": p.fecha_inicio.isoformat(),
+        "fecha_fin": p.fecha_fin.isoformat(),
+        "estado": p.estado,
+        "pendientes_count": pendientes,
+        "aprobados_count": aprobados,
+        "bloqueado_en": p.bloqueado_en.isoformat() if p.bloqueado_en else None,
+        "cerrado_en": p.cerrado_en.isoformat() if p.cerrado_en else None,
+    }
+
+
+@app.get("/api/v1/exportaciones/{periodo_id}/descargar", tags=["Períodos y Nómina"])
+def descargar_archivo_sinergy(periodo_id: int, db: Session = Depends(get_db)):
+    """Descarga el archivo plano FINAL_SINER_*.txt generado para Sinergy."""
+    from src.domain.models.periodo import ExportacionSinergy
+    from fastapi.responses import Response
+
+    exp = (
+        db.query(ExportacionSinergy)
+        .filter(ExportacionSinergy.periodo_id == periodo_id)
+        .order_by(ExportacionSinergy.id.desc())
+        .first()
+    )
+    if not exp:
+        raise HTTPException(status_code=404, detail="No se ha generado ninguna exportación para este período.")
+
+    headers = {
+        "Content-Disposition": f'attachment; filename="{exp.nombre_archivo}"',
+        "X-Hash-SHA256": exp.hash_sha256,
+    }
+    return Response(content=exp.contenido_txt, media_type="text/plain; charset=utf-8", headers=headers)
+
+
+@app.get("/api/v1/auditoria/recientes", tags=["Paralelo y Auditoría"])
+def obtener_auditoria_reciente(db: Session = Depends(get_db)):
+    """Retorna los últimos eventos inmutables de auditoría con sus hashes de integridad."""
+    eventos = db.query(AuditoriaEvento).order_by(AuditoriaEvento.id.desc()).limit(30).all()
+    return [
+        {
+            "id": e.id,
+            "timestamp": e.timestamp_utc.isoformat(),
+            "usuario": f"{e.usuario_nombre} ({e.usuario_id})",
+            "rol": e.rol,
+            "accion": e.accion,
+            "entidad": f"{e.entidad}:{e.entidad_id}",
+            "motivo": e.motivo_justificacion,
+            "hash_sha256": e.signature_hash,
+        }
+        for e in eventos
+    ]
+
+
+# Montaje de la interfaz web Plastitec
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+
+_static_dir = Path(__file__).resolve().parent / "static"
+if _static_dir.exists():
+    app.mount("/", StaticFiles(directory=str(_static_dir), html=True), name="static")
+
