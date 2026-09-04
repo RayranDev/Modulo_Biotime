@@ -25,3 +25,10 @@ env/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Bases de datos locales
+*.db
+*.sqlite
+*.sqlite3
+probe_resultado.txt
+
