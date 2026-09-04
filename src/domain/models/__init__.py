@@ -17,6 +17,12 @@ from src.domain.models.turno import (
     ProgramacionEmpleado,
 )
 from src.domain.models.asistencia import MarcacionCruda, MarcacionNormalizada
+from src.domain.models.calculo import (
+    JornadaResuelta,
+    SegmentoTemporal,
+    ClasificacionSegmento,
+    ResultadoDiario,
+)
 from src.domain.models.regla import ReglaLaboral
 
 __all__ = [
@@ -34,5 +40,9 @@ __all__ = [
     "ReglaLaboral",
     "MarcacionCruda",
     "MarcacionNormalizada",
+    "JornadaResuelta",
+    "SegmentoTemporal",
+    "ClasificacionSegmento",
+    "ResultadoDiario",
 ]
 
