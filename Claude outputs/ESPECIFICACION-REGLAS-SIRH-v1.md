@@ -139,6 +139,19 @@ Toda corrección exige **justificación tipificada**:
 
 Cada corrección queda trazada: autor, fecha, valor anterior, valor nuevo, justificación.
 
+### ⚠️ 6.1 El valor inferido nunca se escribe como si fuera una marcación
+
+Con exigencias de cliente farmacéutico, que un software **infiera** una hora de salida y la guarde con la misma apariencia que un evento biométrico real es un hallazgo de auditoría esperando ocurrir.
+
+Reglas duras:
+
+- El valor inferido se almacena en un **campo distinto**, con **origen `INFERIDO`**, nunca mezclado con la marcación cruda.
+- **Nunca se aplica solo.** Requiere aprobación humana identificada, con justificación tipificada, antes de entrar al cálculo.
+- La marcación cruda original —o su ausencia— **se conserva intacta y visible**.
+- Un reporte debe poder listar, para cualquier período, **todos los días cuyo cálculo se apoyó en un valor inferido y quién lo autorizó**.
+
+El sistema propone; una persona identificada decide. Esa es la diferencia entre una estimación auditable y un dato inventado.
+
 ---
 
 ## 7. FESTIVOS Y DÍAS DE DESCANSO
@@ -211,7 +224,30 @@ Con ~1.000 empleados, 20–25 supervisores y una ventana de uno a dos días, **l
 
 **La aprobación debe ser continua**: el sistema calcula a diario y empuja a la bandeja del jefe lo que va apareciendo, con notificación por correo. Al llegar el día 10, lo que queda pendiente debe ser marginal. El cierre del período confirma, no inicia, el trabajo de aprobación.
 
-### 11.2 Flujo de estados
+### ⚠️ 11.2 LA SEMANA PARTIDA — vacío crítico, sin resolver
+
+**Los tres calendarios no encajan y esto rompe el cierre.**
+
+El umbral de 42 horas se computa de **lunes a domingo**. El ciclo de conceptos variables corta el **día 10**. Cuando el día 10 cae a mitad de semana, el motor **no puede saber** si las horas acumuladas hasta ese día serán ordinarias o extras, porque eso depende de lo que el empleado trabaje el resto de la semana, que ya pertenece al ciclo siguiente.
+
+Ejemplo: el día 10 cae miércoles. El operario lleva 30 horas de lunes a miércoles. ¿Son ordinarias? Depende de si el domingo cierra en 40 o en 50. **No se puede clasificar sin la semana completa.**
+
+Liquidar a ciegas produce error en cada cierre, todos los meses.
+
+**Cuatro salidas posibles. Hay que elegir una y RRHH debe firmarla:**
+
+| # | Opción | Cómo funciona | Costo |
+|---|---|---|---|
+| **A** | Corte proporcional | Se clasifica con lo acumulado hasta el día 10, como si la semana terminara ahí | Sistemáticamente incorrecto. Subestima o sobrestima cada mes |
+| **B** | Provisional + ajuste retroactivo | Se liquida ordinario al corte y el ajuste va en el ciclo siguiente | **Depende de que Sinergy acepte signo `-`, que hoy es desconocido y nunca se ha usado.** Si no lo acepta, esta opción no existe |
+| **C** | Período flotante | El ciclo cierra el último domingo en o antes del día 10 | Las fechas del archivo dejan de ser fijas. Requiere que Sinergy acepte fechas variables en los campos 4 y 6 |
+| **D** | Semana completa al ciclo de su domingo | Cada semana se liquida entera en el ciclo donde cae su domingo. La semana que cruza el día 10 va completa al ciclo siguiente | Hasta 6 días de extras se desplazan al mes siguiente |
+
+**Recomendación técnica: opción D.** Es determinista, no necesita ajustes retroactivos, no depende de una capacidad de Sinergy que no está confirmada, y respeta la integridad de la semana que es la unidad del umbral de 42 horas. Además encaja con la ventana de entrega: la semana que cierra el domingo anterior al día 10 ya está completa y firme cuando hay que generar el archivo.
+
+**Pero es decisión de RRHH y Nómina, no técnica**, porque cambia cuándo cobra la gente. `PENDIENTE` bloqueante.
+
+### 11.3 Flujo de estados
 
 ```
 Calculado
@@ -338,6 +374,7 @@ Independientemente del alcance: traza inmutable, atribución individual, justifi
 | 1 | Figura legal del otrosí y turnos de 12 h | Jurídico | Motor de cálculo |
 | 2 | Convención colectiva vigente | RRHH + Jurídico | Toda la matriz de reglas |
 | 3 | Matriz de festivo × día de descanso (§7.1) | RRHH + Jurídico | Motor de cálculo |
+| 3b | **Semana partida: qué hacer cuando el día 10 cae a mitad de semana (§11.2)** | **RRHH + Nómina** | **Cierre y exportación** |
 | 4 | Anclaje del redondeo: reloj o fin de turno (§4.1) | RRHH | Motor de cálculo |
 | 5 | Dimensión de parametrización de tolerancias (§4.2) | RRHH | Motor de cálculo |
 | 6 | Contador mensual ocasional / habitual (§7.1) | RRHH + Jurídico | Motor de cálculo |

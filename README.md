@@ -1,124 +1,131 @@
-# BioTime Integration & Attendance Management Module
+# SIRH Plastitec — Módulo de Tiempos y Asistencia
+### Versión 3.0 · Integración BioTime 8.5 & Sinergy Nómina
 
-Comprehensive integration module and web dashboard for ZKTeco BioTime API. Built with Python (FastAPI), Pandas, OpenPyXL, and a vanilla JS/CSS web interface.
-
----
-
-## 📌 Overview
-
-This project provides a robust API client, matrix attendance engine, reporting toolkit, and interactive explorer for BioTime servers. It is designed to audit attendance records, resolve punch-to-shift assignments, visualize daily/weekly matrices, and export styled audit reports to Excel.
-
-### Key Capabilities
-
-- **BioTime API Client (`biotime_api.py`)**:
-  - JWT authentication with token caching and refresh.
-  - Automatic pagination (`PAGE_SIZE`), timeout handling, and SSL configuration.
-  - Unified queries across core endpoints: employees, punches/transactions, shifts (`attshifts`), timetables/intervals (`timeintervals`), schedules (`attschedules`), departments, areas, terminals, leaves, and calculations.
-
-- **FastAPI Web Server (`server.py`)**:
-  - Attendance Matrix calculation: maps theoretical shift intervals against real biometric transactions.
-  - Color-coded classification of punches (ontime, late, early departure, overtime, absences).
-  - Excel Report Generator: produces styled `.xlsx` reports using OpenPyXL with matrix formatting and summary sheets.
-  - Management API endpoints: employee sync, shift discovery, and transaction audits.
-
-- **Interactive Web Interface (`static/`)**:
-  - Modern dashboard for viewing employee lists, shifts, punch logs, and real-time matrix attendance.
-  - Export controls and date-range filtering.
-
-- **Specifications & Reference Documents (`Claude outputs/`)**:
-  - `ESPECIFICACION-REGLAS-SIRH-v1.md`: SIRH business rules and shift logic specification.
-  - `PROMPT-MAESTRO-SIRH-PLASTITEC-v2.md`: Master architecture context and reference rules.
+Sistema de gestión de tiempos, control de turnos rotativos, cálculo de horas extras bajo umbral de 42h semanales, aprobación continua por supervisores y exportador oficial a Sinergy Nómina.
 
 ---
 
-## 🏗️ Project Structure
+## 📌 Visión General
+
+El proyecto reemplaza el circuito de planillas físicas en papel de ~1.000 empleados en Plastitec SAS, reduciendo el ciclo mensual de liquidación de variables de **10 días a 1 o 2 días**.
+
+### Arquitectura de Integración
+```
+┌────────────────────────────────────────────────────────┐
+│  BIOTIME 8.5 · Pasarela de Dispositivos y Captura      │
+│  Terminales biométricas · Enrolamiento · Marcaciones   │
+│  (Se conserva intacto, sin tocar su motor)             │
+└────────────────────────────────────────────────────────┘
+                           │
+                           ▼ API REST (Marcaciones crudas)
+┌────────────────────────────────────────────────────────┐
+│  MÓDULO DE TIEMPOS SIRH (`src/`) · Lo que se construye │
+│  - Pipeline persistido de 6 etapas                     │
+│  - Dueño de turnos, ciclos (4x3) y calendarios         │
+│  - Motor de cálculo: umbral semanal 42h y redondeos    │
+│  - Bandeja de aprobación continua por supervisor       │
+│  - Auditoría inmutable con firmas SHA-256              │
+│  - Ciclo de períodos 11 al 10 con bloqueo de RRHH      │
+└────────────────────────────────────────────────────────┘
+                           │
+                           ▼ Archivo plano (FINAL_SINER_*.txt)
+┌────────────────────────────────────────────────────────┐
+│  SINERGY · Nómina                                      │
+│  (Calcula el dinero y liquida conceptos)               │
+└────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🏗️ Estructura del Proyecto
+
+El sistema nuevo vive de forma completamente aislada en el paquete **`src/`**, manteniendo los scripts raíz (`server.py`, `biotime_api.py`) como visor exploratorio previo:
 
 ```text
 MODULO_BIOTIME/
-├── Claude outputs/                 # Business rules and reference specifications
-│   ├── ESPECIFICACION-REGLAS-SIRH-v1.md
-│   └── PROMPT-MAESTRO-SIRH-PLASTITEC-v2.md
-├── static/                         # Web frontend assets
-│   ├── app.js                      # UI logic and API communication
-│   ├── index.html                  # Dashboard layout
-│   └── style.css                   # Interface styling
-├── .env.example                    # Environment variable template
-├── .gitignore                      # Git ignore configuration (protects credentials and cache)
-├── biotime_api.py                  # BioTime REST API client implementation
-├── config.py                       # Centralized configuration loader (from .env)
-├── probe_v1_v2.py                  # Endpoint probing and diagnostic script
-├── requirements.txt                # Python dependencies
-├── server.py                       # FastAPI application & matrix generation engine
-└── README.md                       # Project documentation
+├── src/                               # NUEVO MÓDULO SIRH (Clean Architecture)
+│   ├── core/                          # Configuración, DB y auditoría inmutable
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── audit.py                   # Registro append-only con SHA-256
+│   │   └── init_db.py
+│   ├── domain/models/                 # Modelos de Dominio SQLAlchemy
+│   │   ├── identidad.py               # Identidad multi-sistema (SIRH/BioTime/Sinergy)
+│   │   ├── turno.py                   # Turnos, Ciclos (4x3) y Programación
+│   │   ├── regla.py                   # Reglas laborales versionadas por fecha
+│   │   ├── asistencia.py              # Etapas 1 (Cruda) y 2 (Normalizada)
+│   │   ├── calculo.py                 # Etapas 3, 4, 5 y 6 (Pipeline y 42h)
+│   │   ├── novedad.py                 # Condiciones especiales (Lactancia)
+│   │   ├── periodo.py                 # Ciclo 11→10 y exportaciones
+│   │   └── auditoria.py               # Tabla sys_auditoria_trazabilidad
+│   ├── adapters/                      # Adaptadores externos aislados
+│   │   ├── biotime/client.py          # Cliente REST BioTime 8.5 (Ingesta/Altas/Bajas)
+│   │   └── sinergy/exporter.py        # Generador de archivo plano con mapeo por fecha
+│   ├── services/                      # Lógica de Negocio y Casos de Uso
+│   │   ├── catalogo_service.py        # Importación de turnos e inicialización de reglas
+│   │   ├── ingesta_service.py         # Sincronización idempotente de marcaciones
+│   │   ├── motor_calculo.py           # Pipeline de 6 etapas y umbral de 42h
+│   │   ├── aprobacion_service.py      # Bandeja de supervisores y aprobación por excepción
+│   │   ├── periodo_service.py         # Máquina de estados 11→10 y exportación
+│   │   └── comparador_service.py      # Conciliador de ejecución en paralelo vs BioTime
+│   └── main.py                        # API FastAPI con documentación Swagger/OpenAPI
+├── tests/                             # Suite de Pruebas Unitarias e Integración (Pytest)
+│   ├── conftest.py                    # Fixture DB SQLite en memoria
+│   ├── test_fase2_nucleo.py           # Pruebas de identidad, turnos y auditoría
+│   ├── test_fase3_contrato_biotime.py # Pruebas de contrato contra BioTime 8.5
+│   ├── test_fase3_ingesta.py          # Pruebas de idempotencia y rebote
+│   ├── test_fase4_calculo.py          # Pruebas de redondeo, segmentación y 42h
+│   ├── test_fase5_aprobacion.py       # Pruebas de aprobación y lactancia
+│   ├── test_fase6_periodos_exportacion.py # Pruebas de exportador Sinergy y bloqueo RRHH
+│   └── test_fase7_api_paralelo.py     # Pruebas de API y comparador paralelo
+├── docs/
+│   └── FASE-1-DISENO-CARRIL-A.md      # Especificación arquitectónica base
+├── requirements.txt                   # Dependencias del proyecto
+└── pytest.ini                         # Configuración de pytest
 ```
 
 ---
 
-## ⚙️ Requirements & Installation
+## ⚙️ Puesta en Marcha
 
-### Prerequisites
-
-- Python 3.9+
-- Access to a BioTime server instance (URL, username, and password)
-
-### Installation
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/RayranDev/Modulo_Biotime.git
-   cd Modulo_Biotime
-   ```
-
-2. **Create and activate a virtual environment**:
-   ```bash
-   python -m venv venv
-   # On Windows (PowerShell):
-   .\venv\Scripts\Activate.ps1
-   # On Linux/macOS:
-   source venv/bin/activate
-   ```
-
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure environment variables**:
-   Copy `.env.example` to `.env` and fill in your BioTime server details:
-   ```bash
-   copy .env.example .env
-   ```
-   Edit `.env` with your credentials:
-   ```ini
-   BIOTIME_BASE_URL=http://your-biotime-server:8000
-   BIOTIME_USER=your_username
-   BIOTIME_PASS=your_password
-   BIOTIME_TIMEOUT=60
-   BIOTIME_PAGE_SIZE=500
-   BIOTIME_VERIFY_SSL=False
-   ```
-
----
-
-## 🚀 Running the Application
-
-Start the FastAPI application:
-
-```bash
-python server.py
-```
-Or directly with Uvicorn:
-```bash
-uvicorn server:app --host 0.0.0.0 --port 8000 --reload
+### 1. Activar Entorno Virtual
+```powershell
+.\venv\Scripts\Activate.ps1
 ```
 
-Once started, access:
-- **Web Dashboard**: `http://localhost:8000`
-- **Interactive Swagger Docs**: `http://localhost:8000/docs`
+### 2. Ejecutar la Suite de Pruebas Automatizadas
+Para correr los 26 tests unitarios y de integración:
+```powershell
+pytest tests/ -v
+```
+
+### 3. Inicializar la Base de Datos y Catálogo
+```powershell
+python -m src.core.init_db
+```
+
+### 4. Iniciar el Servidor API FastAPI
+```powershell
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Acceso:
+- **Swagger UI**: `http://localhost:8000/docs`
 - **Redoc**: `http://localhost:8000/redoc`
 
 ---
 
-## 🏷️ Versioning & Restoration Point
+## 🎯 Reglas Clave Implementadas
 
-- **Tag `v1.0.0-baseline`**: Marks the fully working baseline of the attendance matrix, Excel export, and BioTime API integration prior to major architectural refactorings.
+1. **Umbral Semanal de 42 Horas (Ley 2101 de 2021 / P1):**
+   Para personal rotativo, las primeras 42 horas acumuladas de lunes a domingo son ordinarias; a partir de la hora 42.0 se reclasifican a horas extras.
+2. **Redondeo de Extras (P4 / §4):**
+   Cortes en los minutos `:25` y `:50` con incrementos de media hora.
+3. **Condición Especial de Lactancia (P2 / Caso 19):**
+   Jornada de 8 horas con 7 horas trabajadas computa las 8 horas completas.
+4. **Ciclo de Variables 11 al 10 y Bloqueo de RRHH:**
+   El día 11 RRHH inicia el procesamiento y bloquea modificaciones de supervisores para emitir el archivo plano oficial de Sinergy.
+5. **Mapeo de Conceptos Versionado por Fecha (Caso 25):**
+   A partir del 15 de julio de 2026, los recargos festivos se exportan con códigos `0252` y `0258` (y `0253`/`0259` para fechas anteriores).
+6. **Auditoría Inmutable:**
+   Toda acción de ajuste, aprobación o exportación exige justificación y genera un hash SHA-256 inalterable.
