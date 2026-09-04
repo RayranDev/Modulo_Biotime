@@ -50,8 +50,13 @@ class BioTimeAdapter:
         })
         return self
 
-    def _get_paginado(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-        """Descarga todas las páginas de un endpoint en BioTime."""
+    def _get_paginado(
+        self,
+        endpoint: str,
+        params: Optional[Dict[str, Any]] = None,
+        max_paginas: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
+        """Descarga páginas de un endpoint en BioTime con límite de seguridad."""
         if not self.token:
             self.autenticar()
 
@@ -61,12 +66,17 @@ class BioTimeAdapter:
         p["page"] = 1
 
         resultados = []
+        paginas_leidas = 0
         while True:
             resp = self.session.get(url, params=p, timeout=self.timeout, verify=self.verify)
             resp.raise_for_status()
             data = resp.json()
             filas = data.get("data") or data.get("results") or []
             resultados.extend(filas)
+            paginas_leidas += 1
+
+            if max_paginas and paginas_leidas >= max_paginas:
+                break
             if not data.get("next"):
                 break
             p["page"] += 1
@@ -88,3 +98,59 @@ class BioTimeAdapter:
     def obtener_empleados(self) -> List[Dict[str, Any]]:
         """Lee los empleados registrados en BioTime (/personnel/api/employees/)."""
         return self._get_paginado("/personnel/api/employees/")
+
+    def obtener_transacciones(
+        self,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        page_size: Optional[int] = None,
+        max_paginas: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Lee transacciones crudas desde BioTime (/iclock/api/transactions/).
+        Soporta filtrado por start_time y end_time ('YYYY-MM-DD HH:MM:SS').
+        """
+        params: Dict[str, Any] = {}
+        if start_time:
+            params["start_time"] = start_time
+        if end_time:
+            params["end_time"] = end_time
+        if page_size:
+            params["page_size"] = page_size
+
+        return self._get_paginado("/iclock/api/transactions/", params=params, max_paginas=max_paginas)
+
+
+    def crear_empleado(self, emp_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Crea un nuevo empleado en BioTime 8.5 mediante POST a /personnel/api/employees/.
+        Cumple con la decisión D17.
+        """
+        if not self.token:
+            self.autenticar()
+
+        url = f"{self.base_url}/personnel/api/employees/"
+        resp = self.session.post(url, json=emp_data, timeout=self.timeout, verify=self.verify)
+        resp.raise_for_status()
+        return resp.json()
+
+    def dar_baja_empleado(self, biotime_emp_id: int, motivo: str = "Retiro / Renuncia") -> Dict[str, Any]:
+        """
+        Actualiza el estado de un empleado en BioTime a baja/inactivo (D17).
+        Usa PATCH nativo en /personnel/api/employees/{id}/.
+        """
+        if not self.token:
+            self.autenticar()
+
+        url = f"{self.base_url}/personnel/api/employees/{biotime_emp_id}/"
+        payload = {
+            "is_active": False,
+            "status": "3",  # En BioTime 3 suele ser 'Resigned' / 'Baja'
+        }
+        resp = self.session.patch(url, json=payload, timeout=self.timeout, verify=self.verify)
+        # Si el status code es 200 o 204, fue exitoso
+        if resp.status_code in (200, 204):
+            return resp.json() if resp.text else {"status": "ok", "id": biotime_emp_id}
+        resp.raise_for_status()
+        return resp.json()
+

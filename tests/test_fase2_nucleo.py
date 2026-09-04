@@ -12,13 +12,8 @@ from src.domain.models.regla import ReglaLaboral
 from src.services.catalogo_service import CatalogoService
 
 
-@pytest.fixture(scope="module")
-def db():
-    Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
-    CatalogoService.sembrar_reglas_laborales_base(session)
-    yield session
-    session.close()
+
+
 
 
 def test_auditoria_inmutable_exige_motivo(db):

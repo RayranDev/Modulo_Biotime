@@ -16,6 +16,7 @@ from src.domain.models.turno import (
     CicloDetalleDia,
     ProgramacionEmpleado,
 )
+from src.domain.models.asistencia import MarcacionCruda, MarcacionNormalizada
 from src.domain.models.regla import ReglaLaboral
 
 __all__ = [
@@ -31,4 +32,7 @@ __all__ = [
     "CicloDetalleDia",
     "ProgramacionEmpleado",
     "ReglaLaboral",
+    "MarcacionCruda",
+    "MarcacionNormalizada",
 ]
+
