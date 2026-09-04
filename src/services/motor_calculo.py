@@ -145,7 +145,22 @@ class MotorCalculoService:
 
         minutos_netos = max(0, minutos_brutos - minutos_almuerzo)
 
-        # Determinar estado de la jornada
+        # Requerimiento P2 / Caso 19: Lactancia como condición especial vigente
+        from src.domain.models.novedad import CondicionEspecialEmpleado
+        cond_lactancia = (
+            db.query(CondicionEspecialEmpleado)
+            .filter(
+                CondicionEspecialEmpleado.empleado_id == empleado_id,
+                CondicionEspecialEmpleado.tipo_condicion == "LACTANCIA",
+                CondicionEspecialEmpleado.es_activa == True,
+                CondicionEspecialEmpleado.fecha_inicio <= fecha_imputacion,
+                CondicionEspecialEmpleado.fecha_fin >= fecha_imputacion,
+            )
+            .first()
+        )
+        if cond_lactancia and turno and minutos_netos > 0:
+            minutos_netos = min(turno.duracion_minutos, minutos_netos + cond_lactancia.minutos_reconocidos_dia)
+
         if inicio_real and fin_real and inicio_real != fin_real:
             estado = "COMPLETA"
         elif inicio_real and (not fin_real or fin_real == inicio_real):

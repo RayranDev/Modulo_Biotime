@@ -23,6 +23,7 @@ from src.domain.models.calculo import (
     ClasificacionSegmento,
     ResultadoDiario,
 )
+from src.domain.models.novedad import CondicionEspecialEmpleado
 from src.domain.models.regla import ReglaLaboral
 
 __all__ = [
@@ -44,5 +45,6 @@ __all__ = [
     "SegmentoTemporal",
     "ClasificacionSegmento",
     "ResultadoDiario",
+    "CondicionEspecialEmpleado",
 ]
 
