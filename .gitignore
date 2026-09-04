@@ -1,0 +1,27 @@
+# Variables de entorno y credenciales (NUNCA commitear)
+.env
+*.env.local
+
+# Python bytecode y caché
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Salidas de datos y reportes generados
+informacion/
+test_output/
+*.xlsx
+*.csv
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+
+# Editores y SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BioTime Manager · Malla de Asistencia y Explorador de Endpoints</title>
+  <meta name="description" content="Malla interactiva de asistencia, turnos y marcaciones BioTime-ZKTeco con exportación a Excel y explorador de API." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=8.0" />
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo-box">BT</div>
+      <div class="topbar-titles">
+        <h1 class="brand-name">BioTime Explorer &amp; Manager</h1>
+        <span class="brand-subtitle">Control de Asistencia, Turnos &amp; Exportador a Excel</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="connection-pill" id="serverStatusBadge">
+        <span class="pulse-dot"></span>
+        <span id="serverStatusText">Conectando...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- App Layout: Sidebar + Main Workspace -->
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <a href="#malla" class="nav-item active" id="navMalla">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+            <path d="M8 14h.01"></path>
+            <path d="M12 14h.01"></path>
+            <path d="M16 14h.01"></path>
+            <path d="M8 18h.01"></path>
+            <path d="M12 18h.01"></path>
+            <path d="M16 18h.01"></path>
+          </svg>
+          <span class="nav-label">Malla de Asistencia</span>
+          <span class="chevron">&rsaquo;</span>
+        </a>
+
+        <a href="#reportes" class="nav-item" id="navReportes">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span class="nav-label">Reportes de Asistencia</span>
+        </a>
+
+        <a href="#nuevo-empleado" class="nav-item" id="navNuevoEmpleado">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="8.5" cy="7" r="4"></circle>
+            <line x1="20" y1="8" x2="20" y2="14"></line>
+            <line x1="23" y1="11" x2="17" y2="11"></line>
+          </svg>
+          <span class="nav-label">Crear Empleado</span>
+        </a>
+
+        <a href="#endpoints" class="nav-item" id="navEndpoints">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span class="nav-label">Consulta de Endpoints</span>
+        </a>
+
+        <a href="#dispositivos" class="nav-item" id="navDispositivos">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          </svg>
+          <span class="nav-label">Dispositivos</span>
+        </a>
+
+        <a href="#historial" class="nav-item" id="navHistorial">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span class="nav-label">Historial de Consultas</span>
+        </a>
+
+        <a href="#exportaciones" class="nav-item" id="navExportaciones">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          <span class="nav-label">Exportaciones</span>
+        </a>
+
+        <a href="#configuracion" class="nav-item" id="navConfiguracion">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span class="nav-label">Configuración</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer Brand Card -->
+      <div class="sidebar-footer-card">
+        <div class="zk-logo-row">
+          <span class="zk-brand">ZK<span class="zk-green">Teco</span></span>
+        </div>
+        <p class="zk-desc">BioTime by ZKTeco</p>
+        <span class="zk-version">Versión 2.0.0</span>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main-workspace">
+      
+      <!-- ════════════════════════════════════════════════════════════════════
+           VISTA 1: MALLA DE ASISTENCIA MATRICIAL (ACTIVA POR DEFECTO)
+           ════════════════════════════════════════════════════════════════════ -->
+      <div id="viewMallaSection" class="app-view-container active">
+        <div class="view-header">
+          <h2 class="view-title">Malla de Asistencia y Turnos</h2>
+          <p class="view-subtitle">Cruce de marcaciones reales vs. turno asignado por empleado y departamento</p>
+        </div>
+
+        <!-- Filter Card: Departamento, Empleado, Fechas -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <svg class="panel-icon-green" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <h3 class="panel-title">Filtros de Asistencia</h3>
+            </div>
+            <div class="quick-dates-bar">
+              <button class="btn-quick-date" id="btnQuickCurrentMonth">Mes Actual</button>
+              <button class="btn-quick-date" id="btnQuickPrevMonth">Mes Anterior</button>
+              <button class="btn-quick-date" id="btnQuick15Days">Últimos 15 días</button>
+            </div>
+          </div>
+
+          <div class="form-container">
+            <div class="form-row-filters-matrix">
+              <!-- Departamento -->
+              <div class="form-field">
+                <label for="matrixDeptSelect">Departamento</label>
+                <div class="custom-select-wrapper">
+                  <select id="matrixDeptSelect" class="styled-input">
+                    <option value="">Todos los Departamentos</option>
+                  </select>
+                  <span class="select-chevron">&or;</span>
+                </div>
+              </div>
+
+              <!-- Empleado -->
+              <div class="form-field">
+                <label for="matrixEmpSelect">Empleado</label>
+                <div class="custom-select-wrapper">
+                  <select id="matrixEmpSelect" class="styled-input">
+                    <option value="">Todos los Empleados</option>
+                  </select>
+                  <span class="select-chevron">&or;</span>
+                </div>
+              </div>
+
+              <!-- Fecha Desde -->
+              <div class="form-field">
+                <label for="matrixStartDate">Fecha Inicio</label>
+                <div class="date-input-wrap">
+                  <input type="date" id="matrixStartDate" class="styled-input" />
+                </div>
+              </div>
+
+              <!-- Fecha Hasta -->
+              <div class="form-field">
+                <label for="matrixEndDate">Fecha Fin</label>
+                <div class="date-input-wrap">
+                  <input type="date" id="matrixEndDate" class="styled-input" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Leyenda de Colores & Botones de Acción -->
+            <div class="matrix-actions-row">
+              <div class="matrix-legend-tags">
+                <span class="legend-tag legend-complete"><span class="legend-circle green"></span> Completo</span>
+                <span class="legend-tag legend-incomplete"><span class="legend-circle yellow"></span> Incompleto (Falta E/S)</span>
+                <span class="legend-tag legend-early"><span class="legend-circle orange"></span> Salida Anticipada / Tardanza</span>
+                <span class="legend-tag legend-absent"><span class="legend-circle red"></span> Ausente (Con Turno)</span>
+                <span class="legend-tag legend-no-shift"><span class="legend-circle purple"></span> Con Marcación Sin Turno</span>
+                <span class="legend-tag legend-off"><span class="legend-circle gray"></span> Libre</span>
+              </div>
+
+              <div class="action-buttons-group">
+                <button id="btnExportMatrixExcel" class="btn-action-excel" title="Exportar Matriz a Excel con Formato">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  <span>Exportar Matriz Excel</span>
+                </button>
+
+                <button id="btnGenerateMatrix" class="btn-action-query">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                  <span id="btnGenerateMatrixText">Generar Malla</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Summary Metric Cards -->
+        <div class="metric-cards-grid" id="matrixMetricCards">
+          <div class="metric-card">
+            <span class="metric-title">Total Empleados</span>
+            <strong class="metric-num" id="metricTotalEmp">0</strong>
+          </div>
+          <div class="metric-card card-green">
+            <span class="metric-title">Completos</span>
+            <strong class="metric-num green" id="metricComplete">0</strong>
+          </div>
+          <div class="metric-card card-yellow">
+            <span class="metric-title">Incompletos</span>
+            <strong class="metric-num yellow" id="metricIncomplete">0</strong>
+          </div>
+          <div class="metric-card card-orange">
+            <span class="metric-title">Salida Anticipada</span>
+            <strong class="metric-num orange" id="metricEarly">0</strong>
+          </div>
+          <div class="metric-card card-cyan">
+            <span class="metric-title">Salida Tardía / HE</span>
+            <strong class="metric-num cyan" id="metricLate">0</strong>
+          </div>
+          <div class="metric-card card-red">
+            <span class="metric-title">Ausencias</span>
+            <strong class="metric-num red" id="metricAbsent">0</strong>
+          </div>
+          <div class="metric-card card-purple">
+            <span class="metric-title">Sin Turno Asignado</span>
+            <strong class="metric-num purple" id="metricNoShift">0</strong>
+          </div>
+        </div>
+
+        <!-- Results Matrix Card -->
+        <section class="panel-card results-panel">
+          <div class="results-top-bar">
+            <div class="server-stat-pills">
+              <div class="stat-badge">
+                <span class="stat-badge-label">Período:</span>
+                <strong class="stat-badge-value" id="matrixPeriodLabel">--</strong>
+              </div>
+              <div class="stat-badge">
+                <span class="stat-badge-label">Mostrando:</span>
+                <strong class="stat-badge-value" id="matrixShowingLabel">0 empleados</strong>
+              </div>
+            </div>
+
+            <div class="results-controls-right">
+              <div class="table-search-box">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="matrixSearchInput" placeholder="Buscar empleado..." />
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading Overlay -->
+          <div id="matrixLoader" class="query-loader hidden">
+            <div class="green-spinner"></div>
+            <p id="matrixLoaderText">Procesando turnos y marcaciones de BioTime...</p>
+          </div>
+
+          <!-- Matrix Table Container -->
+          <div class="matrix-table-wrapper" id="matrixTableWrapper">
+            <table id="matrixTable" class="matrix-table">
+              <thead id="matrixThead">
+                <tr>
+                  <th class="col-sticky-emp">Empleado</th>
+                  <th class="col-dept">Departamento</th>
+                  <th class="col-shift">Turno Programado</th>
+                  <!-- Days will be populated here -->
+                </tr>
+              </thead>
+              <tbody id="matrixTbody">
+                <tr>
+                  <td colspan="15" class="empty-placeholder">
+                    Configura las fechas y presiona <strong>Generar Malla</strong> para ver la asistencia
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Legend Bar -->
+          <div class="matrix-legend-footer">
+            <span class="legend-title">Convenciones:</span>
+            <div class="legend-item"><span class="legend-chip chip-complete"></span><span>Completo (Entrada + Salida)</span></div>
+            <div class="legend-item"><span class="legend-chip chip-incomplete"></span><span>Incompleto (Falta E o S)</span></div>
+            <div class="legend-item"><span class="legend-chip chip-early"></span><span>Salida Anticipada / Tardanza</span></div>
+            <div class="legend-item"><span class="legend-chip chip-late"></span><span>Salida Tardía / HE</span></div>
+            <div class="legend-item"><span class="legend-chip chip-absent"></span><span>Ausente</span></div>
+            <div class="legend-item"><span class="legend-chip chip-noshift"></span><span>Sin Turno</span></div>
+            <div class="legend-item"><span class="legend-chip chip-off"></span><span>Libre</span></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════════════════════
+           VISTA 2: CONSULTA DE ENDPOINTS (EXPLORADOR)
+           ════════════════════════════════════════════════════════════════════ -->
+      <div id="viewEndpointsSection" class="app-view-container">
+        <div class="view-header">
+          <h2 class="view-title">Consulta de Endpoints</h2>
+          <p class="view-subtitle">Explora y consulta información de dispositivos y tablas BioTime-ZKTeco</p>
+        </div>
+
+        <!-- Card 1: Parameters -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <svg class="panel-icon-green" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                <line x1="12" y1="20" x2="12.01" y2="20"></line>
+              </svg>
+              <h3 class="panel-title">Parámetros de Consulta</h3>
+            </div>
+            <button class="btn-doc" id="btnDocs" title="Abrir documentación de endpoints">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+              <span>Ver Documentación</span>
+            </button>
+          </div>
+
+          <div class="form-container">
+            <div class="form-row-endpoints">
+              <div class="form-col-select">
+                <label for="presetSelect">Endpoint / Ruta API</label>
+                <div class="custom-select-wrapper">
+                  <select id="presetSelect" class="styled-input">
+                    <option value="">Cargando endpoints...</option>
+                  </select>
+                  <span class="select-chevron">&or;</span>
+                </div>
+              </div>
+
+              <div class="form-col-url">
+                <label for="endpointInput">URL Completa</label>
+                <div class="compound-url-field">
+                  <span class="url-base-prefix" id="baseUrlLabel">http://172.16.1.252</span>
+                  <input type="text" id="endpointInput" class="styled-input url-path-input" value="/iclock/api/terminals/" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row-filters">
+              <div class="form-field">
+                <label for="pageSizeInput">Registros por página</label>
+                <div class="custom-select-wrapper">
+                  <select id="pageSizeInput" class="styled-input">
+                    <option value="10">10 registros</option>
+                    <option value="25">25 registros</option>
+                    <option value="50" selected>50 registros</option>
+                    <option value="100">100 registros</option>
+                    <option value="500">500 registros</option>
+                  </select>
+                  <span class="select-chevron">&or;</span>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label for="pageInput">Página</label>
+                <input type="number" id="pageInput" class="styled-input" min="1" value="1" />
+              </div>
+
+              <div class="form-field">
+                <label for="startDateInput">Fecha Inicio (opcional)</label>
+                <div class="date-input-wrap">
+                  <input type="date" id="startDateInput" class="styled-input" />
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label for="endDateInput">Fecha Fin (opcional)</label>
+                <div class="date-input-wrap">
+                  <input type="date" id="endDateInput" class="styled-input" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row-actions">
+              <label class="checkbox-container">
+                <input type="checkbox" id="fetchAllCheckbox" />
+                <span class="custom-checkbox"></span>
+                <span class="checkbox-text">Descargar todas las páginas</span>
+              </label>
+
+              <div class="action-buttons-group">
+                <button id="btnExportExcel" class="btn-action-excel" title="Exportar resultado actual a Excel">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  <span>Exportar a Excel</span>
+                </button>
+
+                <button id="btnQuery" class="btn-action-query">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <span id="btnQueryText">Consultar Datos</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Card 2: Results Table & JSON Viewer -->
+        <section class="panel-card results-panel">
+          <div class="results-top-bar">
+            <div class="server-stat-pills">
+              <div class="stat-badge">
+                <span class="stat-badge-label">Total en servidor:</span>
+                <strong class="stat-badge-value" id="statTotalCount">0</strong>
+              </div>
+              <div class="stat-badge">
+                <span class="stat-badge-label">Mostrando:</span>
+                <strong class="stat-badge-value" id="statReturnedCount">0</strong>
+              </div>
+              <div class="stat-badge">
+                <span class="stat-badge-label">Página:</span>
+                <strong class="stat-badge-value" id="statCurrentPage">1</strong>
+              </div>
+            </div>
+
+            <div class="results-controls-right">
+              <div class="table-search-box">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="tableFilterInput" placeholder="Filtrar en tabla..." />
+              </div>
+
+              <div class="view-pill-toggle">
+                <button id="btnViewTable" class="tab-pill active" type="button">Tabla</button>
+                <button id="btnViewJson" class="tab-pill" type="button">JSON</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="alertBox" class="feedback-alert hidden"></div>
+
+          <div id="loadingOverlay" class="query-loader hidden">
+            <div class="green-spinner"></div>
+            <p id="loadingMessage">Consultando BioTime...</p>
+          </div>
+
+          <div id="tableView" class="view-pane active">
+            <div class="table-container">
+              <table id="dataTable">
+                <thead>
+                  <tr id="tableHeaderRow">
+                    <th>ID</th>
+                    <th>SN</th>
+                    <th>IP_ADDRESS</th>
+                    <th>ALIAS</th>
+                    <th>TERMINAL_NAME</th>
+                    <th>FW_VER</th>
+                    <th>PUSH_VER</th>
+                    <th>STATE</th>
+                    <th>TERMINAL_TZ</th>
+                    <th>AREA.ID</th>
+                    <th>AREA.AREA</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBody">
+                  <tr>
+                    <td colspan="11" class="empty-placeholder">
+                      Selecciona o escribe un endpoint y presiona <strong>Consultar Datos</strong>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="jsonView" class="view-pane">
+            <div class="json-header-bar">
+              <span class="json-caption">Muestra en crudo del servidor (raw JSON):</span>
+              <button id="btnCopyJson" class="btn-copy-code">Copiar JSON</button>
+            </div>
+            <pre class="json-code-display"><code id="jsonCodeBlock">{}</code></pre>
+          </div>
+
+          <div class="table-pagination-footer">
+            <button id="btnPrevPage" class="btn-page-nav" disabled>&larr; Anterior</button>
+            <span id="pageIndicator" class="page-current-tag">Página 1</span>
+            <button id="btnNextPage" class="btn-page-nav" disabled>Siguiente &rarr;</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════════════════════
+           VISTA 3: CREAR EMPLEADO (ALTA CON CATÁLOGOS EXISTENTES)
+           ════════════════════════════════════════════════════════════════════ -->
+      <div id="viewNuevoEmpleadoSection" class="app-view-container">
+        <div class="view-header">
+          <div class="view-header-row">
+            <div>
+              <h2 class="view-title">Alta de Personal en BioTime</h2>
+              <p class="view-subtitle">Registro y homologación estricta de colaboradores en la base de datos de BioTime</p>
+            </div>
+            <div class="quick-status-chip">
+              <span class="pulse-dot"></span>
+              <span>Modo Facial Activo (Opción 15)</span>
+            </div>
+          </div>
+        </div>
+
+        <form id="formNuevoEmpleado" class="employee-create-form" autocomplete="off">
+          <div class="panel-card emp-widescreen-card">
+            
+            <!-- ── SECCIÓN 1: IDENTIFICACIÓN Y DATOS PERSONALES ── -->
+            <div class="form-section-title-wrap">
+              <div class="section-badge-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </div>
+              <div>
+                <h3 class="form-section-heading">1. Identificación y Datos Personales</h3>
+                <span class="form-section-desc">Datos primarios del colaborador y documento de identidad</span>
+              </div>
+            </div>
+
+            <!-- Fila 1: 4 Columnas -->
+            <div class="emp-widescreen-grid-4">
+              <div class="form-field">
+                <label for="newEmpCode">Código / Legajo <span class="required-star">*</span></label>
+                <input type="text" id="newEmpCode" class="styled-input" placeholder="Ej: 1258" required />
+              </div>
+
+              <div class="form-field">
+                <label for="newNational">Cédula / Documento</label>
+                <input type="text" id="newNational" class="styled-input" placeholder="Ej: 1018456789" />
+              </div>
+
+              <div class="form-field">
+                <label for="newFirstName">Nombres <span class="required-star">*</span></label>
+                <input type="text" id="newFirstName" class="styled-input" placeholder="Ej: Carlos Alberto" required />
+              </div>
+
+              <div class="form-field">
+                <label for="newLastName">Apellidos <span class="required-star">*</span></label>
+                <input type="text" id="newLastName" class="styled-input" placeholder="Ej: Pérez Gómez" required />
+              </div>
+            </div>
+
+            <!-- Fila 2: 4 Columnas -->
+            <div class="emp-widescreen-grid-4" style="margin-top: 14px;">
+              <div class="form-field">
+                <label for="newGender">Género</label>
+                <div class="custom-select-wrapper">
+                  <select id="newGender" class="styled-input">
+                    <option value="M">Masculino</option>
+                    <option value="F">Femenino</option>
+                  </select>
+                  <span class="select-chevron">&or;</span>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label for="newHireDate">Fecha de Ingreso</label>
+                <div class="date-input-wrap">
+                  <input type="date" id="newHireDate" class="styled-input" />
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label for="newEmpMobile">Celular / Teléfono</label>
+                <input type="tel" id="newEmpMobile" class="styled-input" placeholder="Ej: 3101234567" />
+              </div>
+
+              <div class="form-field">
+                <label for="newEmpEmail">Correo Electrónico</label>
+                <input type="email" id="newEmpEmail" class="styled-input" placeholder="Ej: usuario@plastitec.com" />
+              </div>
+            </div>
+
+            <!-- ── SECCIÓN 2: ESTRUCTURA ORGANIZACIONAL & BIOTIME ── -->
+            <div class="form-section-title-wrap" style="margin-top: 24px;">
+              <div class="section-badge-icon green">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="form-section-heading">2. Estructura Organizacional &amp; Parámetros BioTime</h3>
+                <span class="form-section-desc">Homologación directa contra catálogos corporativos</span>
+              </div>
+            </div>
+
+            <!-- Fila 3: 4 Columnas -->
+            <div class="emp-widescreen-grid-4">
+              <div class="form-field">
+                <label for="newEmpCompany">Empresa <span class="required-star">*</span></label>
+                <div class="custom-select-wrapper">
+                  <select id="newEmpCompany" class="styled-input" required>
+                    <option value="">Cargando empresas...</option>
+                  </select>
+                  <span class="select-chevron">&or;</span>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label for="newEmpBranch">Compañía <span class="required-star">*</span></label>
+                <div class="custom-select-wrapper">
+                  <select id="newEmpBranch" class="styled-input" required>
+                    <option value="">Cargando compañías...</option>
+                  </select>
+                  <span class="select-chevron">&or;</span>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label for="newEmpCostCenter">Centro de Costos</label>
+                <div class="custom-select-wrapper">
+                  <select id="newEmpCostCenter" class="styled-input">
+                    <option value="">Cargando centros de costos...</option>
+                  </select>
+                  <span class="select-chevron">&or;</span>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label for="newEmpDept">Departamento <span class="required-star">*</span></label>
+                <div class="custom-select-wrapper">
+                  <select id="newEmpDept" class="styled-input" required>
+                    <option value="">Cargando departamentos...</option>
+                  </select>
+                  <span class="select-chevron">&or;</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fila 4: 4 Columnas -->
+            <div class="emp-widescreen-grid-4" style="margin-top: 14px;">
+              <div class="form-field">
+                <label for="newEmpPosition">Cargo / Posición <span class="required-star">*</span></label>
+                <div class="custom-select-wrapper">
+                  <select id="newEmpPosition" class="styled-input" required>
+                    <option value="">Cargando cargos...</option>
+                  </select>
+                  <span class="select-chevron">&or;</span>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label for="newEmpType">Tipo de Empleado <span class="required-star">*</span></label>
+                <div class="custom-select-wrapper">
+                  <select id="newEmpType" class="styled-input" required>
+                    <option value="1" selected>Directo</option>
+                    <option value="3">Temporal</option>
+                  </select>
+                  <span class="select-chevron">&or;</span>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label for="newEmpVerifyMode">Modo de Verificación</label>
+                <div class="custom-select-wrapper">
+                  <select id="newEmpVerifyMode" class="styled-input">
+                    <option value="15" selected>Solo Rostro (Facial - Opción 15)</option>
+                    <option value="0">Cualquier Método / Por Defecto (0)</option>
+                    <option value="1">Solo Huella (1)</option>
+                    <option value="3">Solo Contraseña (3)</option>
+                    <option value="4">Solo Tarjeta (4)</option>
+                  </select>
+                  <span class="select-chevron">&or;</span>
+                </div>
+              </div>
+
+              <!-- Banner informativo biometría facial -->
+              <div class="facial-info-banner">
+                <div class="facial-banner-icon">👤</div>
+                <div class="facial-banner-text">
+                  <strong>Rostro Activo (15)</strong>
+                  <span>Reconocimiento facial en terminales</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── SECCIÓN 3: ENROLAMIENTO FACIAL / FOTO ── -->
+            <div class="form-section-title-wrap" style="margin-top: 24px;">
+              <div class="section-badge-icon cyan">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+              </div>
+              <div class="areas-heading-row">
+                <div>
+                  <h3 class="form-section-heading">3. Enrolamiento Facial / Foto de Biometría <span class="badge-optional">(Opcional)</span></h3>
+                  <span class="form-section-desc">Adjunta un archivo o captura con la cámara web. BioTime extraerá las facciones y enrolará el rostro en los relojes biométricos.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contenedor Principal de Enrolamiento de Foto -->
+            <div class="photo-enrollment-card">
+              <!-- Switch de pestañas: Adjuntar Foto vs Cámara Web -->
+              <div class="photo-tab-switcher">
+                <button type="button" class="photo-tab-btn active" id="tabUploadPhoto">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <span>Adjuntar Archivo de Foto</span>
+                </button>
+                <button type="button" class="photo-tab-btn" id="tabWebcamPhoto">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                  <span>Cámara del Dispositivo</span>
+                </button>
+              </div>
+
+              <!-- Pestaña 1: Drag & Drop / File Input -->
+              <div class="photo-tab-content" id="paneUploadPhoto">
+                <div class="photo-dropzone" id="photoDropZone">
+                  <input type="file" id="empPhotoInput" accept="image/jpeg,image/png,image/webp" style="display: none;">
+                  <div class="dropzone-icon">📷</div>
+                  <div class="dropzone-text">
+                    <strong>Haz clic aquí o arrastra una foto con rostro de frente</strong>
+                    <span>Formatos soportados: JPG, PNG, WEBP (Buena iluminación frontal, sin gafas oscuras)</span>
+                  </div>
+                  <button type="button" class="btn-browse-file" id="btnBrowsePhoto">Seleccionar Archivo</button>
+                </div>
+              </div>
+
+              <!-- Pestaña 2: Cámara Web en Vivo -->
+              <div class="photo-tab-content" id="paneWebcamPhoto" style="display: none;">
+                <div class="webcam-viewport-wrap">
+                  <div class="webcam-viewport">
+                    <video id="webcamVideo" autoplay playsinline muted></video>
+                    <!-- Guía ovalada para centrar el rostro -->
+                    <div class="face-guide-overlay">
+                      <div class="face-guide-oval"></div>
+                      <span class="face-guide-hint">Centra el rostro en el óvalo</span>
+                    </div>
+                  </div>
+                  <div class="webcam-action-bar">
+                    <div class="webcam-select-device-wrap" id="cameraSelectWrap" style="display: none;">
+                      <label for="cameraSelect">Cámara:</label>
+                      <select id="cameraSelect" class="styled-input-sm"></select>
+                    </div>
+                    <button type="button" class="btn-snap-photo" id="btnSnapPhoto">
+                      <span class="btn-snap-circle"></span>
+                      <span>Capturar Rostro</span>
+                    </button>
+                    <button type="button" class="btn-close-camera" id="btnCloseCamera">
+                      Apagar Cámara
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Previsualización de la Foto Seleccionada / Capturada -->
+              <div class="photo-preview-container" id="photoPreviewContainer" style="display: none;">
+                <div class="photo-preview-box">
+                  <div class="photo-preview-thumb-wrap">
+                    <img id="photoPreviewImg" src="" alt="Previsualización de Rostro">
+                  </div>
+                  <div class="photo-preview-details">
+                    <div class="preview-badge-status">
+                      <span class="status-dot-green"></span>
+                      <strong>Rostro listo para enrolar en BioTime</strong>
+                    </div>
+                    <p class="preview-filename" id="photoPreviewName">captura_camara.jpg</p>
+                    <p class="photo-notice-text">Al guardar el empleado, BioTime sincronizará automáticamente el rostro a los relojes de las áreas autorizadas.</p>
+                    <div class="preview-buttons-row">
+                      <button type="button" class="btn-retake-photo" id="btnChangePhoto">
+                        🔄 Cambiar / Tomar Otra
+                      </button>
+                      <button type="button" class="btn-delete-photo" id="btnRemovePhoto">
+                        🗑️ Quitar Foto
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Canvas oculto para captura de fotogramas -->
+              <canvas id="webcamCanvas" style="display: none;"></canvas>
+            </div>
+
+            <!-- ── SECCIÓN 4: ÁREAS DE MARCACIÓN ── -->
+            <div class="form-section-title-wrap" style="margin-top: 24px;">
+              <div class="section-badge-icon purple">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+                </svg>
+              </div>
+              <div class="areas-heading-row">
+                <div>
+                  <h3 class="form-section-heading">4. Áreas de Marcación / Relojes Autorizados <span class="required-star">*</span></h3>
+                  <span class="form-section-desc">Selecciona las terminales físicas autorizadas para registrar marcas</span>
+                </div>
+                <div class="areas-quick-actions">
+                  <button type="button" id="btnSelectAllAreas" class="btn-text-action">Seleccionar Todas</button>
+                  <span class="action-divider">|</span>
+                  <button type="button" id="btnClearAllAreas" class="btn-text-action">Limpiar Selección</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="newEmpAreasContainer" class="areas-widescreen-grid">
+              <span class="loading-inline-text">Cargando áreas existentes...</span>
+            </div>
+
+            <!-- Feedback Alert Box -->
+            <div id="newEmpAlert" class="alert-feedback-box hidden" style="margin-top: 20px;"></div>
+
+            <!-- ── BARRA INFERIOR DE ACCIONES ── -->
+            <div class="form-widescreen-actions-bar">
+              <div class="actions-left-hint">
+                <span class="hint-dot">●</span>
+                <span>Los campos marcados con <strong style="color: #f87171;">*</strong> son obligatorios en BioTime</span>
+              </div>
+              <div class="actions-right-buttons">
+                <button type="button" id="btnResetNewEmp" class="btn-action-secondary">
+                  Limpiar Formulario
+                </button>
+                <button type="submit" id="btnSubmitNewEmp" class="btn-action-query btn-submit-widescreen">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span id="btnSubmitNewEmpText">Guardar Empleado en BioTime</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- VISTA 4: REPORTES DE ASISTENCIA & BIOMETRÍA                        -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <div id="viewReportesSection" class="app-view-container">
+        
+        <!-- Header de la Vista de Reportes -->
+        <div class="view-header-row">
+          <div>
+            <h2 class="view-main-title">Centro de Reportes de Asistencia</h2>
+            <p class="view-main-subtitle">
+              Generación de reportes operacionales, control de puntualidad, inasistencias y exportación directa a Excel.
+            </p>
+          </div>
+          <div class="header-actions-group">
+            <button id="btnExportReportExcel" class="btn-action-excel">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              <span>Exportar Reporte a Excel</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Selector de Tipo de Reporte (Tarjetas Interactivas) -->
+        <div class="report-types-grid" id="reportTypesGrid">
+          <!-- Renderizado dinámico desde /api/reports/types -->
+        </div>
+
+        <!-- Panel de Filtros de Reporte -->
+        <div class="filter-panel-card" style="margin-top: 15px;">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <svg class="panel-icon-green" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+              </svg>
+              <h3 class="panel-title" id="activeReportTitle">Filtros del Reporte</h3>
+            </div>
+            <div class="quick-dates-bar">
+              <button class="btn-quick-date" id="btnReportQuickCurrentMonth">Mes Actual</button>
+              <button class="btn-quick-date" id="btnReportQuickPrevMonth">Mes Anterior</button>
+              <button class="btn-quick-date" id="btnReportQuick15Days">Últimos 15 días</button>
+            </div>
+          </div>
+
+          <div class="form-container">
+            <div class="form-row-filters-matrix" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+              <!-- Empresa / Compañía -->
+              <div class="form-field">
+                <label for="reportCompanySelect">Empresa / Compañía</label>
+                <div class="custom-select-wrapper">
+                  <select id="reportCompanySelect" class="styled-input">
+                    <option value="">Todas las Compañías</option>
+                  </select>
+                  <span class="select-chevron">&or;</span>
+                </div>
+              </div>
+
+              <!-- Departamento -->
+              <div class="form-field">
+                <label for="reportDeptSelect">Departamento</label>
+                <div class="custom-select-wrapper">
+                  <select id="reportDeptSelect" class="styled-input">
+                    <option value="">Todos los Departamentos</option>
+                  </select>
+                  <span class="select-chevron">&or;</span>
+                </div>
+              </div>
+
+              <!-- Fecha Desde -->
+              <div class="form-field">
+                <label for="reportStartDate">Fecha Inicio</label>
+                <div class="date-input-wrap">
+                  <input type="date" id="reportStartDate" class="styled-input" />
+                </div>
+              </div>
+
+              <!-- Fecha Hasta -->
+              <div class="form-field">
+                <label for="reportEndDate">Fecha Fin</label>
+                <div class="date-input-wrap">
+                  <input type="date" id="reportEndDate" class="styled-input" />
+                </div>
+              </div>
+
+              <!-- Búsqueda Empleado -->
+              <div class="form-field">
+                <label for="reportEmpSearch">Buscar Empleado</label>
+                <div class="search-input-wrap">
+                  <input type="text" id="reportEmpSearch" class="styled-input" placeholder="Cód. o Nombre..." />
+                </div>
+              </div>
+
+              <!-- Botones Consultar y Calcular en BioTime -->
+              <div class="form-field action-field" style="align-self: flex-end; display: flex; gap: 8px;">
+                <button id="btnGenerateReport" class="btn-action-query" style="flex: 1;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <span id="btnGenerateReportText">Generar Reporte</span>
+                </button>
+                <button id="btnCalcularBioTime" class="btn-calc-biotime" title="Ejecutar motor oficial de cálculo en BioTime para estas fechas">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                    <line x1="8" y1="6" x2="16" y2="6"></line>
+                    <line x1="16" y1="14" x2="16" y2="18"></line>
+                    <path d="M16 10h.01"></path>
+                    <path d="M12 10h.01"></path>
+                    <path d="M8 10h.01"></path>
+                    <path d="M12 14h.01"></path>
+                    <path d="M8 14h.01"></path>
+                    <path d="M12 18h.01"></path>
+                    <path d="M8 18h.01"></path>
+                  </svg>
+                  <span id="btnCalcularBioTimeText">Calcular en BioTime</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjetas de Resumen / Métricas del Reporte -->
+        <div class="report-metrics-row" id="reportMetricsRow" style="display: none;">
+          <div class="metric-card">
+            <span class="metric-label">Total Registros</span>
+            <strong class="metric-value" id="metricTotalRecords">0</strong>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Empleados Únicos</span>
+            <strong class="metric-value" id="metricUniqueEmps">0</strong>
+          </div>
+          <div class="metric-card" id="metricCardTotalHours" style="display: none;">
+            <span class="metric-label">Total Horas</span>
+            <strong class="metric-value" id="metricTotalHours">0</strong>
+          </div>
+          <div class="metric-card" id="metricCardOvertime" style="display: none;">
+            <span class="metric-label">Horas Extras</span>
+            <strong class="metric-value" id="metricTotalOvertime" style="color: #F59E0B;">0</strong>
+          </div>
+          <div class="metric-card" id="metricCardSurcharges" style="display: none;">
+            <span class="metric-label">Recargos</span>
+            <strong class="metric-value" id="metricTotalSurcharges" style="color: #8B5CF6;">0</strong>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Período Evaluado</span>
+            <strong class="metric-value" id="metricDateRange" style="font-size: 14px;">--</strong>
+          </div>
+        </div>
+
+        <!-- Tabla Dinámica de Resultados del Reporte -->
+        <div class="report-table-panel card-container" style="margin-top: 20px;">
+          <div class="report-table-header">
+            <div class="report-table-title-wrap">
+              <h4 id="reportTableTitle" class="card-title">Detalle del Reporte</h4>
+              <span id="reportRecordCount" class="badge-count">0 registros</span>
+            </div>
+            <div class="report-table-actions">
+              <div class="pagination-controls-row">
+                <button id="btnReportPrevPage" class="btn-page-nav" disabled>&larr; Anterior</button>
+                <span id="reportPageInfo" class="page-info-label">Página 1 de 1</span>
+                <button id="btnReportNextPage" class="btn-page-nav" disabled>Siguiente &rarr;</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive-container report-scrollable-table">
+            <table class="styled-table report-data-table" id="reportDataTable">
+              <thead id="reportTableHead">
+                <!-- Generado dinámicamente -->
+              </thead>
+              <tbody id="reportTableBody">
+                <tr>
+                  <td colspan="10" class="empty-state-cell">
+                    <div class="empty-state-box">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                      </svg>
+                      <p>Selecciona un tipo de reporte y haz clic en <strong>Generar Reporte</strong>.</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal Detalle de Marcaciones por Celda -->
+  <div id="cellModal" class="modal-backdrop hidden">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="modalEmpName">Empleado</h3>
+          <span class="modal-subtitle" id="modalDateInfo">Fecha: --</span>
+        </div>
+        <button class="modal-close-btn" id="modalCloseBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-info-grid">
+          <div class="modal-info-box">
+            <span class="box-label">Turno Asignado</span>
+            <strong class="box-value" id="modalShiftName">--</strong>
+          </div>
+          <div class="modal-info-box">
+            <span class="box-label">Horario Esperado</span>
+            <strong class="box-value" id="modalShiftHours">--</strong>
+          </div>
+          <div class="modal-info-box">
+            <span class="box-label">Estado Asistencia</span>
+            <strong class="box-value" id="modalStatusBadge">--</strong>
+          </div>
+        </div>
+
+        <h4 class="modal-section-title">Marcaciones del Día</h4>
+        <div class="modal-table-wrap">
+          <table class="modal-punches-table">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Estado BioTime</th>
+                <th>Dispositivo / Terminal</th>
+              </tr>
+            </thead>
+            <tbody id="modalPunchesTbody">
+              <tr><td colspan="3">Sin marcaciones</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=8.0"></script>
+</body>
+</html>
